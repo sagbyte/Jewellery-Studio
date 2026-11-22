@@ -620,7 +620,7 @@ function shrink(file){return new Promise(res=>{const r=new FileReader();r.onload
  const s=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;
  c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.src=r.result};r.readAsDataURL(file)})}
 function settings(){
- $('#dlg').innerHTML=`<div class="fh"><h2>Backup</h2></div><div class="fb"><p class="mute" style="color:var(--mute)">Your studio is saved in this browser. Download a backup to keep it safe or move it to another device.</p>
+ $('#dlg').innerHTML=`<div class="fh"><h2>Backup</h2></div><div class="fb"><p class="mute" style="color:var(--mute)">Your studio is saved in this browser. Download a backup to keep it safe or move it to another device. <b>App version: 2026-11-22 · v4 (file links, volume, database)</b></p>
  <div class="row"><button class="btn" id="ex">Download backup</button><button class="btn o" id="im">Restore</button></div><div class="row"><button class="btn o" id="exs">Show examples</button><button class="btn o" id="exr">Remove examples</button></div><div class="shr" id="shr1"><h3>Share catalogue (view only)</h3><p id="shtxt"></p><input id="shlink" readonly hidden><div class="row" id="shrow"></div><div class="row"><button class="btn o" id="gh">Export for GitHub (catalogue.json)</button></div></div>
  <div class="shr" id="ghbox"><h3>Share from GitHub (no Claude needed)</h3><p id="ghtxt"></p><div id="ghf"></div><div class="row"><button class="btn o" id="gh2">Download catalogue.json instead</button></div></div>
  <div class="row"><button class="btn o" id="cx">Close</button></div>
