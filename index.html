@@ -189,6 +189,13 @@ table.spec td{font-weight:600;padding:9px 0;border-bottom:1px solid var(--line);
 .tp{width:100%;padding-top:4px;border-top:1px dashed var(--line)}
 .tp h4{margin:8px 0 0;font-size:11px;color:var(--mute)}
 .tp input{flex:1;min-width:120px;font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--ink)}
+.lkr{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lkt{min-width:0;flex:1 1 200px}.lkt b{display:block}.lkt small{color:var(--mute);font-weight:700;font-size:11px}
+.lku{display:block;color:var(--mute);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb{font:800 12px Manrope,sans-serif;text-decoration:none;border:1px solid var(--acc);color:var(--acc);background:none;border-radius:99px;padding:6px 14px;cursor:pointer;display:inline-block}
+.lr{border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:8px;margin-bottom:8px;display:grid;gap:6px}
+.lr label.lk{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:700}
+.lr label.lk input{width:auto}
 </style>
 </head>
 <body>
@@ -276,10 +283,10 @@ const rsn=r=>`<span class="rsn" style="--c:${rcol(r)}">${esc(r||'No reason set')
 const SORTS=[['new','Date added: newest first'],['old','Date added: oldest first'],['az','Full model name: A to Z'],['za','Full model name: Z to A'],['uid','Unique ID: A to Z'],['cat','Category'],['wl','Weight: lightest to heaviest'],['wh','Weight: heaviest to lightest'],['metal','Metal type'],['rsn','Scrap reason']];
 const wnum=s=>{const t=String(s||'').toLowerCase(),n=(t.match(/\d+(?:\.\d+)?/g)||[]).map(Number);if(!n.length)return null;let a=n.reduce((x,y)=>x+y,0)/n.length;if(/\bkg\b/.test(t))a*=1000;else if(/\bmg\b/.test(t))a/=1000;return a};
 const sc=(a,b)=>!a&&!b?0:!a?1:!b?-1:String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'});
-const MED=['media','Photos & videos','media'],DESC=['description','Description','textarea','CAD settings, tolerances, stone details, client feedback…'];
+const LNK=['links','File links (Google Drive etc.)','links'],MED=['media','Photos & videos','media'],DESC=['description','Description','textarea','CAD settings, tolerances, stone details, client feedback…'];
 const CORE=[['name','Full model name','text','e.g. Diamond Crest Ring',1],['uid','Unique ID','text','e.g. DC-R'],['cat','Category','select',CATS],['subcat','Subcategory','pick',[]],['size','Size','pick',RINGS],['wt','Approx. weight','text','e.g. 3 g'],['vol','Volume (mm³, optional)','number','e.g. 1250'],['metal','Metal','pick',MT],['design','Design','text','e.g. Diamond-shaped lattice'],['detailing','Detailing','text','e.g. Chila / gold bead detailing'],['structure','Structure','text','e.g. Open architectural framework'],['style','Style','text','e.g. Geometric, ornamental']];
 const CK=CORE.map(c=>c[0]);
-const FF=(pre,post)=>[MED,CORE[0],CORE[1],...pre,...CORE.slice(2),...post,DESC];
+const FF=(pre,post)=>[MED,CORE[0],CORE[1],...pre,...CORE.slice(2),...post,LNK,DESC];
 const STONES=[['stones','Stone type','pick',SN],['cut','Stone cut','pick',CUT],['ssize','Stone size','pick',[]],['setting','Setting style','pick',SET]];
 // field: [key,label,type,options or placeholder,required]
 const T={
@@ -338,7 +345,7 @@ function items(){
  if(tab==='scrapped'&&rf)L=L.filter(i=>(i.scrapReason||'')===(rf==='__none'?'':rf));
  if(cf)L=L.filter(i=>i.cat===cf);
  const s=q.toLowerCase().trim();
- if(s)L=L.filter(i=>[i.name,i.uid,i.cat,i.skill,i.sw,i.metal,i.stones,i.cut,i.setting,i.ssize,i.size,i.spec,i.wt,i.source,i.style,i.design,i.detailing,i.structure,i.description,i.notes,i.scrapReason,...(i.media||[]).flatMap(m=>m.tags||[])].join(' ').toLowerCase().includes(s));
+ if(s)L=L.filter(i=>[i.name,i.uid,i.cat,i.skill,i.sw,i.metal,i.stones,i.cut,i.setting,i.ssize,i.size,i.spec,i.wt,i.source,i.style,i.design,i.detailing,i.structure,i.description,i.notes,i.scrapReason,...(i.links||[]).map(l=>l.label),...(i.media||[]).flatMap(m=>m.tags||[])].join(' ').toLowerCase().includes(s));
  const w=i=>wnum(i.wt||i.spec),nc=(x,y,d)=>x==null&&y==null?0:x==null?1:y==null?-1:d*(x-y),k=so==='rsn'&&tab!=='scrapped'?'new':so;
  const F={new:()=>0,old:(a,b)=>(a.ts||0)-(b.ts||0),az:(a,b)=>sc(a.name,b.name),za:(a,b)=>sc(b.name,a.name),uid:(a,b)=>sc(a.uid,b.uid),cat:(a,b)=>sc(a.cat,b.cat),wl:(a,b)=>nc(w(a),w(b),1),wh:(a,b)=>nc(w(a),w(b),-1),metal:(a,b)=>sc(a.metal,b.metal),rsn:(a,b)=>sc(a.scrapReason,b.scrapReason)}[k]||(()=>0);
  return L.sort((a,b)=>F(a,b)||(b.ts||0)-(a.ts||0));
@@ -401,7 +408,7 @@ async function syncNow(manual){
   const want=D.items.filter(i=>i.type==='catalogue'&&!i.scrapped),col=db.collection('catalogue');
   const have=(await col.get()).docs.map(d=>d.id);
   for(const i of want){const sg=hsh(JSON.stringify(i));if(SYN[i.id]===sg&&have.includes(i.id))continue;
-   const o=JSON.parse(JSON.stringify(i));delete o.media;const im=await shareImg(i,560,.66);if(im)o.img=im;await col.doc(i.id).set(o);SYN[i.id]=sg}
+   const o=JSON.parse(JSON.stringify(i));delete o.media;o.links=(i.links||[]).filter(l=>l.share);if(!o.links.length)delete o.links;const im=await shareImg(i,560,.66);if(im)o.img=im;await col.doc(i.id).set(o);SYN[i.id]=sg}
   for(const id of have)if(!want.some(i=>i.id===id)){await col.doc(id).delete();delete SYN[id]}
   if(manual)shareUI('Synced '+want.length+' design'+(want.length===1?'':'s')+'. Only your Catalogue is shared, view only.');
  }catch(e){if(manual)shareUI('Could not sync ('+(e&&e.code||'error')+'). Try again.')}
@@ -412,7 +419,7 @@ async function saveFile(name,data){
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=name;a.click()}
 async function buildCat(){
  const want=D.items.filter(i=>i.type==='catalogue'&&!i.scrapped),items=[];
- for(const i of want){const o=JSON.parse(JSON.stringify(i));const u=await shareImg(i,1100,.74);delete o.media;delete o.art;delete o.hue;delete o.ex;o.img=u;items.push(o)}
+ for(const i of want){const o=JSON.parse(JSON.stringify(i));const u=await shareImg(i,1100,.74);delete o.media;o.links=(i.links||[]).filter(l=>l.share);if(!o.links.length)delete o.links;delete o.art;delete o.hue;delete o.ex;o.img=u;items.push(o)}
  return items}
 async function exportCat(){
  const items=await buildCat();
@@ -481,7 +488,7 @@ $('#zoom .zx').onclick=closeZoom;
  zl.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Z.s*(e.deltaY<0?1.25:.8))},{passive:false});
  addEventListener('resize',()=>{if(zl.classList.contains('on'))zfit()})}
 function closePage(){$('#page').classList.remove('on');$('#page').innerHTML='';DID=null;document.body.style.overflow=''}
-let SP='spec',CI=0,DID=null,CARGO=null,WM=[],WO='';
+let SP='spec',CI=0,DID=null,CARGO=null,WM=[],WO='',WL=[];
 const CR=[['name','Full model name'],['uid','Unique ID'],['cat','Category'],['subcat','Subcategory'],['size','Size'],['wt','Approx. weight'],['vol','Volume'],['metal','Metal'],['design','Design'],['detailing','Detailing'],['structure','Structure'],['style','Style']];
 const dash='<span style="color:var(--mute)">—</span>';
 function slidesOf(i){const ms=i.media||[];if(ms.length)return ms.filter(m=>MU[m.id]).map(m=>({k:m.kind,u:MU[m.id],tags:m.tags||[]}));const l=src(i);return l?[{k:'image',u:l,tags:[]}]:[]}
@@ -495,8 +502,9 @@ async function detail(id){
   if(v&&k==='size'&&SINFO[v])h+=`<br><small style="color:var(--mute);font-weight:600">${esc(SINFO[v])}</small>`;
   if(v&&k==='vol'){const n=+v;h=n?`${n.toLocaleString(undefined,{maximumFractionDigits:2})} mm³ <small style="color:var(--mute);font-weight:600">(${(n/1000).toFixed(3)} cm³)</small>`:esc(v)}
   return `<tr><th>${l}</th><td>${h}</td></tr>`+(k==='metal'&&v&&MS[i.metal]?`<tr><th>Density (Matrix 9)</th><td>${MS[i.metal]} g/cm³</td></tr>`:'')+(k==='metal'&&v&&+i.vol>0&&MD[i.metal]?`<tr><th>Est. weight from volume</th><td>≈ ${(i.vol/1000*MD[i.metal]).toFixed(2)} g <small style="color:var(--mute);font-weight:600">(solid, volume × ${MD[i.metal]} g/cm³)</small></td></tr>`:'')}).join('');
- const ex=t.f.filter(f=>!CK.includes(f[0])&&!['media','description','status'].includes(f[0])).map(f=>{const k=f[0];let v=i[k]??'';if(k==='end'&&!v&&i.status==='Still working')v='Still working';if(!v)return '';
+ const ex=t.f.filter(f=>!CK.includes(f[0])&&!['media','description','status','links'].includes(f[0])).map(f=>{const k=f[0];let v=i[k]??'';if(k==='end'&&!v&&i.status==='Still working')v='Still working';if(!v)return '';
   v=k==='mins'?v+' min':f[2]==='date'&&/^\d{4}-/.test(v)?fmt(v):esc(v);if(k==='deadline'&&i.deadline<today()&&i.status!=='Completed')v+=' (overdue)';return `<tr><th>${f[1]}</th><td>${v}</td></tr>`}).join('')+(()=>{const e=ctEst(i.stones,i.cut,i.ssize);return e?`<tr><th>Est. stone weight (each)</th><td>≈ ${e} ct <small style="color:var(--mute);font-weight:600">(estimate; depends on cut proportions)</small></td></tr>`:''})()+(dur>0?`<tr><th>Took</th><td>${dur} day${dur>1?'s':''}</td></tr>`:'')+(i.scrapped?`<tr><th>Scrap reason</th><td>${rsn(i.scrapReason)}</td></tr>`:'');
+ const lkh=linksHtml(i);
  const slh=(ph?[{ph:1,tags:[]}]:sl).map(s=>`<div class="sl"${s.ph?` style="${grad(i.id)}"`:''}>${s.ph?GEM:s.k==='video'?`<video src="${s.u}" controls playsinline preload="metadata"></video>`:`<img src="${s.u}" alt="${esc(i.name)}">`}${tgh(s.tags)}</div>`).join('');
  const dsl=`<div class="sl ds"><div class="dc"><small>Description</small><h3>${esc(i.name)} ${up}</h3><div class="dtxt">${desc?esc(desc):`<span style="opacity:.7">No description yet.${VIEW?'':' Tap the pencil to add one.'}</span>`}</div></div></div>`;
  const thumbs=ph?'<p class="mute">No photos or videos added yet.</p>':`<div class="mg">${sl.map((s,k)=>`<button data-g="${k}" aria-label="Show item ${k+1}">${s.k==='video'?`<video src="${s.u}#t=0.1" muted preload="metadata"></video><span class="pl"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`:`<img src="${s.u}" alt="">`}${tgh(s.tags)}</button>`).join('')}</div>`;
@@ -505,7 +513,7 @@ async function detail(id){
  <div class="db"><h2>${esc(i.name)}${up}</h2><div class="chips"><span class="chip k">${t.label}</span>${i.scrapped?rsn(i.scrapReason):''}${i.ex?'<span class="chip">Example</span>':''}${[i.cat,i.skill,i.sw].filter(Boolean).map(v=>`<span class="chip">${esc(v)}</span>`).join('')}</div>
  ${i.status&&i.type!=='catalogue'&&!i.scrapped&&!VIEW?seg(i):''}
  <div class="stabs" role="tablist">${[['spec','Specifications'],['desc','Description'],['media','Media']].map(([k,l])=>`<button role="tab" data-p="${k}" aria-selected="${SP===k}">${l}</button>`).join('')}</div>
- <div id="p-spec"${SP==='spec'?'':' hidden'}><table class="spec">${core}</table>${ex?`<h3>More details</h3><table class="spec">${ex}</table>`:''}</div>
+ <div id="p-spec"${SP==='spec'?'':' hidden'}><table class="spec">${core}</table>${ex?`<h3>More details</h3><table class="spec">${ex}</table>`:''}${lkh}</div>
  <div id="p-desc"${SP==='desc'?'':' hidden'}>${desc?`<div class="note dtxt" style="margin:0">${esc(desc)}</div>`:`<p class="mute">No description yet.${VIEW?'':' Tap the pencil to add CAD settings, tolerances, stone details or client feedback.'}</p>`}</div>
  <div id="p-media"${SP==='media'?'':' hidden'}>${thumbs}</div>
  ${VIEW||i.scrapped?'':`<div class="shr"><h3>Move to</h3><div class="row" style="margin-top:6px">${others.map(k=>`<button class="btn o" data-mv="${k}">${T[k].label}</button>`).join('')}</div></div>`}
@@ -524,6 +532,7 @@ async function detail(id){
  $('#page .stabs').onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;SP=b.dataset.p;document.querySelectorAll('.stabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.p===SP));['spec','desc','media'].forEach(k=>$('#p-'+k).hidden=k!==SP)};
  $('#cl').onclick=closePage;if($('#ed'))$('#ed').onclick=()=>form(i.type,id);
  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{i.status=b.dataset.s;fs=i.status;if(i.type==='practice'){if(i.status==='Completed'&&!i.end)i.end=today();if(i.status==='Still working')i.end=''}save();render();detail(id);toast('Status: '+i.status)});
+ document.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const l=(i.links||[]).filter(x=>safeUrl(x.url))[+b.dataset.cp];if(l&&navigator.clipboard)navigator.clipboard.writeText(safeUrl(l.url)).then(()=>toast('Link copied'),()=>toast('Could not copy'));else toast('Could not copy')});
  document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>moveTo(i,b.dataset.mv));
  if(VIEW){}else if(i.scrapped){$('#rs').onclick=()=>{i.scrapped=false;save();closePage();render();toast('Restored to '+t.label)};
   $('#df').onclick=()=>{if(confirm('Delete this permanently?')){purge(i);D.items=D.items.filter(x=>x!==i);save();closePage();render()}}}
@@ -532,6 +541,14 @@ async function detail(id){
 }
 addEventListener('keydown',e=>{if(!$('#page').classList.contains('on')||$('#zoom').classList.contains('on')||$('#dlg').open||!CARGO)return;const tg=e.target;if(tg&&tg.closest&&tg.closest('input,textarea,select,video'))return;
  if(e.key==='ArrowRight'){e.preventDefault();CARGO(CI+1)}else if(e.key==='ArrowLeft'){e.preventDefault();CARGO(CI-1)}});
+
+function safeUrl(u){try{const x=new URL(String(u||'').trim());return /^https?:$/.test(x.protocol)?x.href:''}catch(e){return ''}}
+function normUrl(u){u=String(u||'').trim();if(!u)return '';if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u='https://'+u;return safeUrl(u)}
+function driveDl(u){if(!/drive\.google\.com/.test(u)||/\/folders\//.test(u))return '';const m=/\/file\/d\/([\w-]+)/.exec(u)||/[?&]id=([\w-]+)/.exec(u);return m?'https://drive.google.com/uc?export=download&id='+m[1]:''}
+function linksHtml(i){const ls=(i.links||[]).map(l=>({...l,u:safeUrl(l.url)})).filter(l=>l.u);if(!ls.length)return '';
+ return `<h3>File links</h3>${ls.map((l,k)=>{const dl=driveDl(l.u);return `<div class="lkr"><div class="lkt"><b>${esc(l.label||'File')}</b>${VIEW?'':`<small>${l.share?'Shown in shared catalogue':'Private (only you)'}</small>`}<span class="lku">${esc(l.u)}</span></div><div class="mb"><a class="lb" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer">Open</a>${dl?`<a class="lb" href="${esc(dl)}" target="_blank" rel="noopener noreferrer">Download</a>`:''}${VIEW?'':`<button type="button" class="lb" data-cp="${k}">Copy</button>`}</div></div>`}).join('')}`}
+function linksUI(){const el=$('#llist');if(!el)return;
+ el.innerHTML=WL.map((l,n)=>`<div class="lr" data-i="${n}"><input type="text" data-f="label" placeholder="Label, e.g. 3dm file / STL / render folder" value="${esc(l.label||'')}" maxlength="60"><input type="url" data-f="url" placeholder="https://drive.google.com/..." value="${esc(l.url||'')}" inputmode="url" autocapitalize="off"><label class="lk"><input type="checkbox" data-f="share"${l.share?' checked':''}> Show this link in the shared catalogue</label><div class="mb"><button type="button" class="d" data-a="rm">Remove link</button></div></div>`).join('')}
 function moveTo(i,nt){const id=i.id;i.type=nt;
  if(nt==='reference'&&!STR.includes(i.status))i.status='In idea';
  if(nt==='practice'){if(!STP.includes(i.status))i.status='Still working';if(!i.start)i.start=i.date||today()}
@@ -550,11 +567,13 @@ function mediaUI(){const el=$('#mlist');if(!el)return;
  el.innerHTML=WM.map((m,n)=>`<div class="mr" data-i="${n}"><div class="th">${!m.url?'':m.kind==='video'?`<video src="${m.url}#t=0.1" muted preload="metadata"></video>`:`<img src="${m.url}" alt="">`}${n===0?'<b>Cover</b>':''}</div><div class="mi"><div class="mtags">${m.tags.map(x=>`<span>${esc(x)}</span>`).join('')||'<small class="mute">No tags</small>'}</div><div class="mb">${n?'<button type="button" data-a="cov">Set cover</button>':''}<button type="button" data-a="l"${n?'':' disabled'} aria-label="Move earlier">‹</button><button type="button" data-a="r"${n<WM.length-1?'':' disabled'} aria-label="Move later">›</button><button type="button" data-a="tg" class="${WO===m.id?'on':''}">${WO===m.id?'Done':'Tags'}</button><button type="button" class="d" data-a="rm">Remove</button></div></div>${WO===m.id?tagPanel(m):''}</div>`).join('')}
 async function form(type,id){
  const t=T[type],it=id?D.items.find(x=>x.id===id):{};await ensureUrls(it.media);
+ WL=(it.links||[]).map(l=>({...l}));
  WM=(it.media||[]).map(m=>({...m,tags:[...(m.tags||[])],url:MU[m.id]||''}));WO='';
  const fl=it.scrapped?[...t.f.slice(0,-1),['scrapReason','Scrap reason','pick',SRN],t.f[t.f.length-1]]:t.f;
  $('#dlg').innerHTML=`<div class="fh"><h2>${id?'Edit':'Add'} ${id?t.one:'to '+t.label}</h2></div><div class="fb">`+fl.map(([k,l,ty,x,r])=>{
   const v=it[k]??(k==='wt'?it.spec:null)??(k==='date'||k==='start'?today():'');let c;
   if(ty==='media')c=`<label class="up" for="f_media" style="min-height:110px">${ic('plus')}<span>Add photos &amp; videos</span><small>Select several at once. The first item is the cover.</small></label><input type="file" id="f_media" accept="image/*,video/*" multiple hidden><div id="mlist" style="margin-top:10px"></div>`;
+  else if(ty==='links')c=`<div id="llist"></div><button type="button" class="ghost" id="ladd">+ Add a link</button><small class="mute" style="display:block;margin-top:6px">Paste a Google Drive (or any) link. Links are private unless you tick the share box. For others to open a Drive file, set it to Anyone with the link: Viewer.</small>`;
   else if(ty==='select')c=`<select id="f_${k}">${x.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('')}</select>`;
   else if(ty==='pick'){const xs=k==='size'?sizeFor(it.cat||CATS[0]):k==='subcat'?subFor(it.cat||CATS[0]):k==='ssize'?ssLabels(it.cut):x;c=`<select id="f_${k}" data-pick="1">${k==='ssize'?ssOpts(it.stones,it.cut,v):pickOpts(xs,v)}</select><input id="o_${k}" value="${v&&!xs.includes(v)?esc(v):''}" placeholder="Type it here" style="margin-top:6px"${v&&!xs.includes(v)?'':' hidden'}>`}
   else if(ty==='textarea')c=`<textarea id="f_${k}" style="min-height:140px" placeholder="${esc(x||'')}">${esc(v)}</textarea>`;
@@ -575,18 +594,22 @@ async function form(type,id){
    default:return}
   mediaUI();if(b.dataset.a==='ct'&&$('#ctag'))$('#ctag').focus()};
  $('#mlist').onkeydown=e=>{if(e.key==='Enter'&&e.target.id==='ctag'){e.preventDefault();e.target.closest('.tp').querySelector('[data-a=ct]').click()}};
+ linksUI();$('#ladd').onclick=()=>{WL.push({label:'',url:'',share:false});linksUI();const r=document.querySelectorAll('#llist .lr');if(r.length)r[r.length-1].querySelector('input').focus()};
+ $('#llist').addEventListener('input',e=>{const r=e.target.closest('.lr');if(!r)return;const f=e.target.dataset.f;if(f)WL[+r.dataset.i][f]=f==='share'?e.target.checked:e.target.value});
+ $('#llist').addEventListener('click',e=>{const b=e.target.closest('[data-a=rm]');if(!b)return;WL.splice(+b.closest('.lr').dataset.i,1);linksUI()});
  const cs=$('#f_cat'),ss=$('#f_size'),sb=$('#f_subcat');if(cs)cs.addEventListener('change',()=>{if(ss){ss.innerHTML=pickOpts(sizeFor(cs.value),'');$('#o_size').value='';$('#o_size').hidden=true}if(sb){sb.innerHTML=pickOpts(subFor(cs.value),'');$('#o_subcat').value='';$('#o_subcat').hidden=true}});
  const sS=$('#f_stones'),sC=$('#f_cut'),rfs=()=>{const z=$('#f_ssize');if(!z||z.value==='__o')return;z.innerHTML=ssOpts(sS&&sS.value,sC&&sC.value,z.value)};if(sS)sS.addEventListener('change',rfs);if(sC)sC.addEventListener('change',rfs);
  document.querySelectorAll('select[data-pick]').forEach(sl=>sl.onchange=()=>{const o=$('#o_'+sl.id.slice(2));o.hidden=sl.value!=='__o';if(!o.hidden)o.focus()});
  $('#cx').onclick=()=>$('#dlg').close();
  $('#sv').onclick=async()=>{
   const o=Object.assign({ts:Date.now()},it,{id:it.id||uid(),type});
-  for(const [k,l,ty,x,r] of fl){if(ty==='media')continue;const el=$('#f_'+k);
+  for(const [k,l,ty,x,r] of fl){if(ty==='media'||ty==='links')continue;const el=$('#f_'+k);
    if(ty==='pick')o[k]=el.value==='__o'?$('#o_'+k).value.trim():el.value;else{o[k]=el.value.trim();if(r&&!o[k]){el.focus();el.style.borderColor='var(--bad)';return}}}
   o.uid=(o.uid||'').toUpperCase();delete o.notes;delete o.img;
   try{for(const m of WM)if(m.file)await mput(m.id,m.file)}catch(e){toast('Could not store a file. Browser storage may be full.');return}
   const keep=new Set(WM.map(m=>m.id));for(const m of it.media||[])if(!keep.has(m.id)){await mdel(m.id);delete MU[m.id]}
   WM.forEach(m=>{if(m.file)MU[m.id]=m.url});
+  o.links=WL.map(l=>({label:(l.label||'').trim(),url:normUrl(l.url),share:!!l.share})).filter(l=>l.url);if(!o.links.length)delete o.links;
   o.media=WM.map(m=>({id:m.id,kind:m.kind,name:m.name,tags:m.tags}));
   if(o.status==='Completed'&&type==='practice'&&!o.end)o.end=today();if(!id)D.items.push(o);else D.items=D.items.map(x=>x.id===id?o:x);
   save();if(!o.scrapped)tab=type;q='';cf='';rf='';fs=o.status||'Still working';$('#q').value='';render();$('#dlg').close();if($('#page').classList.contains('on'))detail(o.id);toast(id?'Saved':'Added to '+t.label);
